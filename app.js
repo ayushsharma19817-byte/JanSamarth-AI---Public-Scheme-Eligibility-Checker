@@ -104,6 +104,15 @@ function renderCard(scheme) {
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
+    const formData = new FormData(form);
+  const data = {
+    age: Number(formData.get("age") || 0),
+    state: formData.get("state") || "",
+    annual_income: Number(formData.get("annual_income") || 0),
+    category: formData.get("category") || "",
+    occupation: formData.get("occupation") || "",
+    query: formData.get("query") || ""
+  };
   submitButton.disabled = true;
   submitButton.textContent = "Checking sample rules…";
   resultsContainer.replaceChildren();
