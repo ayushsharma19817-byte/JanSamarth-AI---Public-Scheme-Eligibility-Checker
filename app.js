@@ -220,6 +220,3 @@ voiceButton.addEventListener("click", () => {
   recognition.start();
 });
 
-fetch("/api/health").then((r) => r.json()).then((data) => {
-  if (data.status !== "ok") console.warn("JanSamarth API is not ready.");
-}).catch(() => console.warn("API health check failed."));
