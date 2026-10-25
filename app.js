@@ -174,7 +174,7 @@ notice.textContent = payload.notice;
 payload.results.forEach((scheme) => {
   resultsContainer.appendChild(renderCard(scheme));
 });
-    catch (error) {
+} catch (error) {
     notice.textContent = "Could not check schemes. Make sure the Python server is running. Details: " + error.message;
     resultsSection.hidden = false;
   } finally {
