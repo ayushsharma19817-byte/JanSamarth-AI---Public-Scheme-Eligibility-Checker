@@ -108,24 +108,73 @@ form.addEventListener("submit", async (event) => {
   submitButton.textContent = "Checking sample rules…";
   resultsContainer.replaceChildren();
   try {
-    const data = Object.fromEntries(new FormData(form).entries());
-    data.age = Number(data.age);
-    data.annual_income = Number(data.annual_income);
-    const response = await fetch("/api/check-eligibility", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify(data)
-    });
-    const payload = await response.json();
-    if (!response.ok) {
-      throw new Error(payload.detail ? JSON.stringify(payload.detail) : "The request could not be completed.");
-    }
-    resultCount.textContent = `${payload.count} records · ${payload.potential_matches} possible sample matches`;
-    notice.textContent = payload.notice;
-    payload.results.forEach((scheme) => resultsContainer.appendChild(renderCard(scheme)));
-    resultsSection.hidden = false;
-    resultsSection.scrollIntoView({behavior: "smooth", block: "start"});
-  } catch (error) {
+    const response = await fetch("./schemes.json");
+
+if (!response.ok) {
+  throw new Error("Could not load scheme data.");
+}
+
+const schemes = await response.json();
+
+const userState = String(data.state || "").trim().toLowerCase();
+const userCategory = String(data.category || "").trim().toLowerCase();
+const userOccupation = String(data.occupation || "").trim().toLowerCase();
+const searchTerm = String(data.query || "").trim().toLowerCase();
+
+const matches = schemes.filter((scheme) => {
+  const rules = scheme.eligibility || {};
+
+  const ageMatches =
+    data.age >= (rules.age_min ?? 0) &&
+    data.age <= (rules.age_max ?? Infinity);
+
+  const incomeMatches =
+    data.annual_income <= (rules.annual_income_max ?? Infinity);
+
+  const states = (rules.states || []).map((v) => v.toLowerCase());
+  const categories = (rules.categories || []).map((v) => v.toLowerCase());
+  const occupations = (rules.occupations || []).map((v) => v.toLowerCase());
+
+  const stateMatches =
+    !userState || states.length === 0 ||
+    states.includes("any") || states.includes(userState);
+
+  const categoryMatches =
+    !userCategory || categories.length === 0 ||
+    categories.includes("any") || categories.includes(userCategory);
+
+  const occupationMatches =
+    !userOccupation || occupations.length === 0 ||
+    occupations.includes("any") || occupations.includes(userOccupation);
+
+  const searchableText = [
+    scheme.name,
+    scheme.summary,
+    ...(scheme.keywords || [])
+  ].join(" ").toLowerCase();
+
+  const searchMatches =
+    !searchTerm || searchableText.includes(searchTerm);
+
+  return ageMatches && incomeMatches && stateMatches &&
+    categoryMatches && occupationMatches && searchMatches;
+});
+
+const payload = {
+  count: schemes.length,
+  potential_matches: matches.length,
+  notice: "Results use illustrative sample data. Verify eligibility on the official government portal.",
+  results: matches
+};
+
+resultCount.textContent =
+  `${payload.count} records · ${payload.potential_matches} possible sample matches`;
+
+notice.textContent = payload.notice;
+payload.results.forEach((scheme) => {
+  resultsContainer.appendChild(renderCard(scheme));
+});
+    catch (error) {
     notice.textContent = "Could not check schemes. Make sure the Python server is running. Details: " + error.message;
     resultsSection.hidden = false;
   } finally {
